@@ -142,7 +142,7 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
       <div class="logo">麦</div>
       <div>
         <h1>满单时段与可约率</h1>
-        <div class="sub">2026-05-01 至 2026-10-28 · <b>195</b> 家门店 · <b>52.3 万</b>条实际占用订单</div>
+        <div class="sub">2026-05-01 至 2026-10-28 · <b>191</b> 家门店 · <b>4</b> 家 MUU · <b>52.3 万</b>条实际占用订单</div>
       </div>
     </div>
     <div class="viewbar">
@@ -199,6 +199,12 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
       <button class="pill" type="button" data-sort="orders">订单多</button>
     </div>
     <div id="bar-store-rank"></div><div class="store-scroll" style="margin-top:12px"><table id="store-table"></table></div>
+    <div id="muu-block">
+      <h2 style="margin-top:18px">MUU</h2>
+      <p class="note" id="muu-note"></p>
+      <div id="bar-muu"></div>
+      <div style="overflow:auto;margin-top:12px"><table id="muu-table"></table></div>
+    </div>
     <div id="store-chart"></div>
   </div>
 
@@ -322,39 +328,13 @@ function renderStatic(){
 let storeSort = "full";
 let storePick = null;
 function pctOr(n){return n==null?"—":pct(n);}
-function renderStores(){
-  const series = STORES.series[month+"|"+part];
-  const q = (document.getElementById("store-q").value||"").trim();
-  const names = STORES.names;
-  const eligible = [];
-  names.forEach((name,i)=>{ if(series.n[i]>=800 && series.b[i]!=null) eligible.push(i); });
-  let fullI=eligible[0], looseI=eligible[0];
-  eligible.forEach(i=>{
-    if(series.b[i]<series.b[fullI]) fullI=i;
-    if(series.b[i]>series.b[looseI]) looseI=i;
-  });
-  document.getElementById("store-note").textContent = eligible.length
-    ? `跟上方同一个月份和星期筛选。订单不少于 800 的 ${eligible.length} 家店里，${names[fullI]}最满（可约率 ${pct(series.b[fullI])}），${names[looseI]}最空（${pct(series.b[looseI])}）。表里默认只放这批店，搜名字可以看更小的店。麦舍、麦子已剔除。点一行看时段。`
-    : "当前筛选下没有订单不少于 800 的门店。";
-  const rows=[];
-  names.forEach((name,i)=>{
-    if(series.b[i]==null) return;
-    const hit = q && name.indexOf(q)>=0;
-    if(q && !hit) return;
-    if(!hit && series.n[i] < 800) return;
-    rows.push(i);
-  });
-  rows.sort((a,b)=>{
-    if(storeSort==="orders") return series.n[b]-series.n[a];
-    if(storeSort==="loose") return series.b[b]-series.b[a];
-    return series.b[a]-series.b[b];
-  });
-  const table=document.getElementById("store-table");
-  table.innerHTML=`<thead><tr><th>门店${helpBtn("门店")}</th><th>订单${helpBtn("订单")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>17:00 可约率</th><th>20:00 可约率</th><th>最满时段${helpBtn("最满时段")}</th></tr></thead>`;
+function isMuu(name){return name.indexOf("MUU")>=0;}
+function storeHead(){
+  return `<thead><tr><th>门店${helpBtn("门店")}</th><th>订单${helpBtn("订单")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>17:00 可约率</th><th>20:00 可约率</th><th>最满时段${helpBtn("最满时段")}</th></tr></thead>`;
+}
+function storeRows(names, series, indexes){
   const body=document.createElement("tbody");
-  const sc=document.querySelector(".store-scroll");
-  const top=sc.scrollTop;
-  rows.forEach(i=>{
+  indexes.forEach(i=>{
     const hb=series.hb[i];
     const tr=document.createElement("tr");
     tr.className="click"+(i===storePick?" pick":"");
@@ -363,12 +343,64 @@ function renderStores(){
     tr.onclick=()=>{ storePick=i; renderStores(); };
     body.appendChild(tr);
   });
-  table.appendChild(body);
+  return body;
+}
+function sortStores(indexes, series){
+  indexes.sort((a,b)=>{
+    if(storeSort==="orders") return series.n[b]-series.n[a];
+    if(storeSort==="loose") return series.b[b]-series.b[a];
+    return series.b[a]-series.b[b];
+  });
+}
+function renderStores(){
+  const series = STORES.series[month+"|"+part];
+  const q = (document.getElementById("store-q").value||"").trim();
+  const names = STORES.names;
+  const eligible = [];
+  names.forEach((name,i)=>{ if(!isMuu(name) && series.n[i]>=800 && series.b[i]!=null) eligible.push(i); });
+  let fullI=eligible[0], looseI=eligible[0];
+  eligible.forEach(i=>{
+    if(series.b[i]<series.b[fullI]) fullI=i;
+    if(series.b[i]>series.b[looseI]) looseI=i;
+  });
+  document.getElementById("store-note").textContent = eligible.length
+    ? `跟上方同一个月份和星期筛选，不含 MUU。订单不少于 800 的 ${eligible.length} 家店里，${names[fullI]}最满（可约率 ${pct(series.b[fullI])}），${names[looseI]}最空（${pct(series.b[looseI])}）。表里默认只放这批店，搜名字可以看更小的店。麦舍、麦子已剔除。点一行看时段。`
+    : "当前筛选下没有订单不少于 800 的门店。";
+  const rows=[];
+  names.forEach((name,i)=>{
+    if(isMuu(name) || series.b[i]==null) return;
+    const hit = q && name.indexOf(q)>=0;
+    if(q && !hit) return;
+    if(!hit && series.n[i] < 800) return;
+    rows.push(i);
+  });
+  sortStores(rows, series);
+  const table=document.getElementById("store-table");
+  table.innerHTML=storeHead();
+  const sc=document.querySelector(".store-scroll");
+  const top=sc.scrollTop;
+  table.appendChild(storeRows(names, series, rows));
   sc.scrollTop=top;
   const rankHost=document.getElementById("bar-store-rank");
   const rank=rows.slice(0,12);
   if(!rank.length) rankHost.replaceChildren();
   else drawHBars("bar-store-rank", rank.map(i=>({label:names[i], value:series.b[i], index:i, on:i===storePick})), (idx)=>{storePick=idx; renderStores();});
+  const muu=[];
+  names.forEach((name,i)=>{
+    if(!isMuu(name) || series.b[i]==null) return;
+    if(q && name.indexOf(q)<0) return;
+    muu.push(i);
+  });
+  sortStores(muu, series);
+  const muuBlock=document.getElementById("muu-block");
+  muuBlock.style.display=muu.length?"":"none";
+  if(muu.length){
+    const orders=muu.reduce((s,i)=>s+series.n[i],0);
+    document.getElementById("muu-note").textContent=`${muu.length} 家，${fmt(orders)} 单。不进上面的排名。点一行可以和全连锁比。`;
+    document.getElementById("muu-table").innerHTML=storeHead();
+    document.getElementById("muu-table").appendChild(storeRows(names, series, muu));
+    drawHBars("bar-muu", muu.map(i=>({label:names[i].replace("MUU SPA ",""), value:series.b[i], index:i, on:i===storePick})), (idx)=>{storePick=idx; renderStores();});
+  }
   const chart=document.getElementById("store-chart");
   if(storePick==null || series.b[storePick]==null || (q && names[storePick].indexOf(q)<0)){
     chart.innerHTML=`<p class="note" style="margin:12px 0 0">点一家店或上面的横条，和全连锁的时段曲线对比。</p>`;
@@ -635,8 +667,8 @@ const HELP = {
     eg: "欢乐颂店全期最满是 20:00–22:00，可约率 14.2%。"
   },
   "门店": {
-    short: "按订单上的门店名称，一共 195 家。麦舍、麦子不在这份名单里。",
-    body: "技师当天的在班和在钟，算进他做项目的那家店。上方的月份和星期筛选，对门店排名同样生效。",
+    short: "麦悠悠 191 家参与排名。MUU 4 家单独列出。麦舍、麦子不在这份名单里。",
+    body: "技师当天的在班和在钟，算进他做项目的那家店。上方的月份和星期筛选，对门店排名和 MUU 同样生效。",
     eg: "订单不少于 800 的店里，全期最满是欢乐颂店 24.4%，最空是人民东路店 61.0%。"
   }
 };
@@ -684,10 +716,16 @@ function bindHelp(){
     closeHelp();
   }, true);
 }
+function muuLine(series){
+  const idx=[];
+  STORES.names.forEach((name,i)=>{ if(isMuu(name) && series.b[i]!=null) idx.push(i); });
+  idx.sort((a,b)=>series.b[a]-series.b[b]);
+  return idx.map(i=>STORES.names[i].replace("MUU SPA ","")+" "+pct(series.b[i])).join("，");
+}
 function storeBoard(part){
   const series=STORES.series["合计|"+part];
   const idx=[];
-  STORES.names.forEach((_,i)=>{ if(series.n[i]>=800 && series.b[i]!=null) idx.push(i); });
+  STORES.names.forEach((name,i)=>{ if(!isMuu(name) && series.n[i]>=800 && series.b[i]!=null) idx.push(i); });
   idx.sort((a,b)=>series.b[a]-series.b[b]);
   return {series, idx, full:idx[0], loose:idx[idx.length-1], mid:idx[Math.floor(idx.length/2)]};
 }
@@ -780,14 +818,23 @@ const CHAPTERS=[
     return `<p class="kicker">同样的口径，店和店可以差一倍</p><h2>最满和最空</h2>
       <div class="say"><p>横条是全期可约率${helpBtn("可约率")}，越短越满。只画订单不少于 800 的 ${s.idx.length} 家店里最满的 12 家。</p>
       <p>${STORES.names[full]} ${pct(s.series.b[full])}，${fmt(s.series.n[full])} 单。${STORES.names[loose]} ${pct(s.series.b[loose])}，${fmt(s.series.n[loose])} 单。这批店的中位是 ${STORES.names[s.mid]} ${pct(s.series.b[s.mid])}，和全连锁 ${pct(RAW.packs["合计"]["全部"].overallBookable)} 接近。</p>
-      <p>换成周末，最满是 ${STORES.names[w.full]} ${pct(w.series.b[w.full])}，最空是 ${STORES.names[w.loose]} ${pct(w.series.b[w.loose])}。点一条横条，回到看板看这家店和全连锁的时段曲线。</p></div>
+      <p>换成周末，最满是 ${STORES.names[w.full]} ${pct(w.series.b[w.full])}，最空是 ${STORES.names[w.loose]} ${pct(w.series.b[w.loose])}。点一条横条，回到看板看这家店和全连锁的时段曲线。</p>
+      <p>MUU 4 家不进这张排名，单独放在下面：${muuLine(s.series)}。</p></div>
       <div id="r-store"></div>
-      <div class="read">读图：24% 左右的短条是最满的店，不是全连锁的平均。平均在 36% 附近。</div>`;
+      <div id="r-muu"></div>
+      <div class="read">读图：24% 左右的短条是最满的店。全连锁平均在 36% 附近。MUU 四家都在 40% 以上。</div>`;
   }, draw(){
     const s=storeBoard("全部");
     drawHBars("r-store", s.idx.slice(0,12).map(i=>({label:STORES.names[i], value:s.series.b[i], index:i, on:false})), (idx)=>{
       storePick=idx; month="合计"; part="全部"; setView("board"); render();
       document.getElementById("store-card").scrollIntoView({block:"start"});
+    });
+    const muu=[];
+    STORES.names.forEach((name,i)=>{ if(isMuu(name) && s.series.b[i]!=null) muu.push(i); });
+    muu.sort((a,b)=>s.series.b[a]-s.series.b[b]);
+    drawHBars("r-muu", muu.map(i=>({label:STORES.names[i].replace("MUU SPA ",""), value:s.series.b[i], index:i, on:false})), (idx)=>{
+      storePick=idx; month="合计"; part="全部"; setView("board"); render();
+      document.getElementById("muu-block").scrollIntoView({block:"start"});
     });
   }},
   {title:"名词", html(){
