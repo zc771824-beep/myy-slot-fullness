@@ -86,6 +86,46 @@ tr.pick td{background:var(--brand-soft)}
 .chart-wrap{position:relative;margin-top:4px}
 .tip{position:absolute;display:none;pointer-events:none;background:#16232B;color:#fff;font-size:12px;line-height:1.45;padding:8px 10px;border-radius:8px;z-index:3;max-width:240px}
 .tip b{font-weight:650}
+
+.viewbar{display:flex;gap:8px;flex:none}
+button.help{
+  font:inherit;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);
+  background:#fff;color:var(--brand);font-size:11px;font-weight:700;line-height:1;
+  cursor:pointer;padding:0;flex:none;vertical-align:1px;
+}
+button.help:hover,button.help.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.kpi .lab{display:flex;align-items:center;gap:4px}
+.card h2{display:flex;align-items:center;gap:6px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.popover{
+  position:fixed;z-index:40;width:min(340px,calc(100vw - 24px));
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 16px 40px rgba(16,40,38,.18);padding:14px 14px 12px;
+  max-height:min(70vh,420px);overflow:auto;
+}
+.popover h3{font-size:15px;font-weight:700}
+.pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.popover p{font-size:13.5px;color:var(--ink2)}
+.popover .eg{margin-top:8px;font-size:12.5px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:8px 10px}
+#report{display:none}
+body[data-view="report"] #board{display:none}
+body[data-view="report"] #report{display:block}
+.steps{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:4px 0 12px;z-index:6}
+.kicker{font-size:12px;color:var(--brand);font-weight:650;margin-bottom:4px}
+.say{font-size:15px;color:var(--ink2);margin:8px 0 14px}
+.say p{margin-bottom:8px}
+.read{background:var(--brand-soft);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--ink2);margin-top:12px}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px}
+.pager .mid{font-size:12px;color:var(--faint)}
+button.pill:disabled{opacity:.4;cursor:default}
+.gloss{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gloss div{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.gloss b{font-size:14px}
+.gloss span{display:block;margin-top:4px;font-size:12.5px;color:var(--sub)}
+button.pill:disabled{opacity:.4}
+#report-body h2{font-size:20px;font-weight:700}
+button.help{margin:0 2px}
+@media(max-width:800px){.gloss{grid-template-columns:1fr}}
 footer{margin-top:8px;font-size:12px;color:var(--faint)}
 @media(max-width:800px){
   .kpis{grid-template-columns:1fr 1fr}
@@ -105,7 +145,12 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
         <div class="sub">2026-05-01 至 2026-10-28 · <b>207</b> 家门店 · <b>52.3 万</b>条实际占用订单</div>
       </div>
     </div>
+    <div class="viewbar">
+      <button class="pill on" type="button" data-view-btn="board">看板</button>
+      <button class="pill" type="button" data-view-btn="report">讲解</button>
+    </div>
   </header>
+  <div id="board">
 
   <div class="callout">
     <strong>每天 20:30–22:30 最满，工作日 16:30–18:30 最空</strong>
@@ -115,7 +160,7 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
   <div class="kpis" id="kpis"></div>
 
   <div class="card">
-    <h2>各时段可约率</h2>
+    <h2>各时段可约率<button class="help" type="button" data-help="可约率" aria-label="查看可约率的解释">?</button></h2>
     <p class="note">可约率 = 在班但该小时没在做项目的技师占比。满单 = 至少 2 名技师在班且全部在钟。整点由两个半小时按在班人数加权。</p>
     <div class="filters" id="months"></div>
     <div class="filters part" id="parts"></div>
@@ -145,7 +190,7 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
   </div>
 
   <div class="card" id="store-card">
-    <h2>门店</h2>
+    <h2>门店<button class="help" type="button" data-help="门店" aria-label="查看门店的解释">?</button></h2>
     <p class="note" id="store-note"></p>
     <div class="filters">
       <input class="q" id="store-q" placeholder="搜门店" />
@@ -160,9 +205,14 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
   <div class="card method">
     <h2>口径</h2>
     <p class="note">读完上面的图，再用这段核对数字是怎么来的。</p>
-    <p>计入实际占住技师的订单：待评价、已评价、服务中、待到店、待起钟、挂单，共 52.3 万条。已取消、已退款、已关闭已剔除。抽查 5 月、8 月、10 月，这三类起钟与预约时间相同的约占 96%，按占位时间处理。待支付 3 单一并剔除。床位列为空，产能按技师计。</p>
-    <p>在班取技师当天第一单到最后一单，并去掉首尾各 60 分钟。首尾必然在服务中，留在口径里会把开门和打烊算成满单。中位一名技师一天 4 单、跨度 8.6 小时。可约率 = 在班但该半小时没在钟的人时 / 在班人时。满单率 = 在班不少于 2 人且无人空闲的门店时段 / 在班不少于 2 人的门店时段。</p>
-    <p>相对历史高位的剩余：该门店、该星期、该钟点，距离过去六个月同时在钟人数的第 90 百分位还剩多少。导出没有排班表，也没有约满后被拒绝的记录。当天完全没接到单的技师不会进分母，白天可约率因此偏保守。晚间若还有人约不进去，真实可约率只会更低或与这里持平。</p>
+    <p>计入实际占住技师的订单<button class="help" type="button" data-help="计入订单" aria-label="查看计入订单的解释">?</button>：待评价、已评价、服务中、待到店、待起钟、挂单，共 52.3 万条。已取消、已退款、已关闭已剔除。抽查 5 月、8 月、10 月，这三类起钟与预约时间相同的约占 96%，按占位时间处理。待支付 3 单一并剔除。床位列为空，产能按技师计。</p>
+    <p>在班<button class="help" type="button" data-help="在班" aria-label="查看在班的解释">?</button>取技师当天第一单到最后一单，并去掉首尾各 60 分钟。首尾必然在服务中，留在口径里会把开门和打烊算成满单。中位一名技师一天 4 单、跨度 8.6 小时。可约率<button class="help" type="button" data-help="可约率" aria-label="查看可约率的解释">?</button> = 在班但该半小时没在钟的人时 / 在班人时。满单率<button class="help" type="button" data-help="满单率" aria-label="查看满单率的解释">?</button> = 在班不少于 2 人且无人空闲的门店时段 / 在班不少于 2 人的门店时段。</p>
+    <p>相对历史高位的剩余<button class="help" type="button" data-help="距历史高位还剩" aria-label="查看距历史高位还剩的解释">?</button>：该门店、该星期、该钟点，距离过去六个月同时在钟人数的第 90 百分位还剩多少。导出没有排班表，也没有约满后被拒绝的记录。当天完全没接到单的技师不会进分母，白天可约率因此偏保守。晚间若还有人约不进去，真实可约率只会更低或与这里持平。</p>
+  </div>
+  </div>
+  <div id="report">
+    <div class="steps" id="report-steps"></div>
+    <div class="card" id="report-body"></div>
   </div>
   <footer>来源：2026-10-28 项目订单列表导出 · 预约到店日 2026-05-01 至 2026-10-28</footer>
 </div>
@@ -197,30 +247,32 @@ function renderFilters(){
     b.onclick=()=>{month=name;render();};
     return b;
   }));
-  document.getElementById("parts").replaceChildren(...PARTS.map(name=>{
+  const partsEl=document.getElementById("parts");
+  partsEl.replaceChildren(...PARTS.map(name=>{
     const b=el(`<button class="pill${name===part?" on":""}" type="button"></button>`);
     b.textContent=name;
     b.onclick=()=>{part=name;render();};
     return b;
   }));
+  ["工作日","周末"].forEach(name=>partsEl.appendChild(el(helpBtn(name))));
 }
 function renderKpis(pack){
   const items=[
-    ["可约率", pack.overallBookable, month+" · "+part, pack.overallBookable<32?"warn":""],
-    ["满单率", pack.overallFull, "至少 2 人在班且全部在钟", pack.overallFull>=40?"warn":""],
-    ["最满两小时", pack.tightBookable, pack.tightFrom+"–"+pack.tightTo, "hot"],
-    ["计入订单", null, "开工落在统计时段内", ""]
+    ["可约率", pack.overallBookable, month+" · "+part, pack.overallBookable<32?"warn":"", "可约率"],
+    ["满单率", pack.overallFull, "至少 2 人在班且全部在钟", pack.overallFull>=40?"warn":"", "满单率"],
+    ["最满两小时", pack.tightBookable, pack.tightFrom+"–"+pack.tightTo, "hot", "最满两小时"],
+    ["计入订单", null, "开工落在统计时段内", "", "计入订单"]
   ];
-  document.getElementById("kpis").replaceChildren(...items.map(([lab,val,foot,cls])=>{
+  document.getElementById("kpis").replaceChildren(...items.map(([lab,val,foot,cls,key])=>{
     const show = val==null
       ? `<div class="val" style="font-size:26px">${fmt(pack.orders)}</div>`
       : `<div class="val">${pct(val).replace("%","")}<small>%</small></div>`;
-    return el(`<div class="kpi ${cls}"><div class="lab">${lab}</div>${show}<div class="foot">${foot}</div></div>`);
+    return el(`<div class="kpi ${cls}"><div class="lab"><span>${lab}</span>${helpBtn(key)}</div>${show}<div class="foot">${foot}</div></div>`);
   }));
 }
 function renderBars(pack){
   const book=byHour(pack,"bookable"), full=byHour(pack,"full"), share=byHour(pack,"share");
-  const rows=[el(`<div class="brow headrow"><span>钟点</span><span>可约率</span><span style="text-align:right">可约</span><span style="text-align:right">满单</span><span class="share" style="text-align:right">开工</span></div>`)];
+  const rows=[el(`<div class="brow headrow"><span>钟点</span><span>可约率${helpBtn("可约率")}</span><span style="text-align:right">可约</span><span style="text-align:right">满单${helpBtn("满单")}</span><span class="share" style="text-align:right">开工${helpBtn("开工占比")}</span></div>`)];
   HOURS.forEach((h,i)=>{
     const cls=tone(book[i]);
     rows.push(el(`<div class="brow"><span class="h">${h}</span><div class="track"><i class="${cls}" style="width:${Math.max(book[i],1.2)}%"></i></div><span class="num ${cls}">${pct(book[i])}</span><span class="num">${pct(full[i])}</span><span class="num share">${pct(share[i])}</span></div>`));
@@ -229,7 +281,7 @@ function renderBars(pack){
 }
 function renderHalf(pack){
   document.getElementById("half-note").textContent = month+" · "+part+" · 距历史高位还剩，是相对该门店该星期该钟点过去六个月在钟人数 P90 的剩余。";
-  const head=el(`<thead><tr><th>时段</th><th>可约率</th><th>满单率</th><th>距历史高位还剩</th><th>开工占比</th></tr></thead>`);
+  const head=el(`<thead><tr><th>时段</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>距历史高位还剩${helpBtn("距历史高位还剩")}</th><th>开工占比${helpBtn("开工占比")}</th></tr></thead>`);
   const body=document.createElement("tbody");
   SLOTS.forEach((slot,i)=>{
     const tr=document.createElement("tr");
@@ -243,7 +295,7 @@ function renderHalf(pack){
 }
 function renderStatic(){
   const mt=document.getElementById("months-table");
-  mt.innerHTML=`<thead><tr><th>月份</th><th>日期</th><th>订单</th><th>可约率</th><th>满单率</th><th>最满两小时</th><th>周末可约率</th></tr></thead>`;
+  mt.innerHTML=`<thead><tr><th>月份</th><th>日期</th><th>订单${helpBtn("订单")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>最满两小时${helpBtn("最满两小时")}</th><th>周末可约率${helpBtn("周末")}</th></tr></thead>`;
   const tb=document.createElement("tbody");
   ["5月","6月","7月","8月","9月","10月"].forEach(name=>{
     const all=RAW.packs[name]["全部"], we=RAW.packs[name]["周末"], cov=RAW.coverage[name];
@@ -256,7 +308,7 @@ function renderStatic(){
   });
   mt.appendChild(tb);
   const dt=document.getElementById("dow-table");
-  dt.innerHTML=`<thead><tr><th>星期</th><th>12:00 可约率</th><th>14:00 可约率</th><th>17:00 可约率</th><th>20:00 可约率</th><th>21:00 可约率</th><th>21:00 满单率</th></tr></thead>`;
+  dt.innerHTML=`<thead><tr><th>星期</th><th>12:00 可约率${helpBtn("可约率")}</th><th>14:00 可约率</th><th>17:00 可约率</th><th>20:00 可约率</th><th>21:00 可约率</th><th>21:00 满单率${helpBtn("满单率")}</th></tr></thead>`;
   const db=document.createElement("tbody");
   RAW.dow.forEach(row=>{
     const tr=document.createElement("tr");
@@ -298,7 +350,7 @@ function renderStores(){
     return series.b[a]-series.b[b];
   });
   const table=document.getElementById("store-table");
-  table.innerHTML=`<thead><tr><th>门店</th><th>订单</th><th>可约率</th><th>满单率</th><th>17:00 可约率</th><th>20:00 可约率</th><th>最满时段</th></tr></thead>`;
+  table.innerHTML=`<thead><tr><th>门店${helpBtn("门店")}</th><th>订单${helpBtn("订单")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>17:00 可约率</th><th>20:00 可约率</th><th>最满时段${helpBtn("最满时段")}</th></tr></thead>`;
   const body=document.createElement("tbody");
   const sc=document.querySelector(".store-scroll");
   const top=sc.scrollTop;
@@ -350,9 +402,10 @@ function legendRow(series){
   d.className="legend";
   series.forEach(s=>{
     const span=document.createElement("span");
-    span.innerHTML = s.dash
+    const key=["满单率","可约率","满单","开工占比"].find(k=>s.name.indexOf(k)>=0);
+    span.innerHTML = (s.dash
       ? `<i style="border-top:2px dashed ${s.color};height:0;width:14px;display:inline-block;margin-right:5px;vertical-align:2px"></i>${s.name}`
-      : `<i class="sw" style="background:${s.color}"></i>${s.name}`;
+      : `<i class="sw" style="background:${s.color}"></i>${s.name}`) + (key?helpBtn(key):"");
     d.appendChild(span);
   });
   return d;
@@ -519,7 +572,277 @@ function renderCharts(){
   ]);
 }
 
+
+const HELP = {
+  "可约率": {
+    short: "在班技师里，这一档没在做项目的比例。",
+    body: "在班的技师里，这个时段没有在做项目的人时占比。36% 大约是 3 个人里有 1 个空着。越高，这段时间越还能约。分母只算当天有单的技师，完全没接到单的人不在里面，所以白天这个数偏保守。",
+    eg: "全期 36.1%。最满的 20:30–22:30 是 22.8%。"
+  },
+  "满单率": {
+    short: "至少 2 人在班、并且一个人都没空的时段占多少。",
+    body: "至少 2 名技师在班、并且这一档全部在钟的门店时段，占所有「至少 2 人在班」时段的比例。一个人独自在钟不算满单，避免小店被一个人撑成 100%。",
+    eg: "全期 36.1%。周末升到 43.0%，晚上还会更高。"
+  },
+  "满单": {
+    short: "这一档至少 2 名技师在班，而且全部在钟。",
+    body: "看的是这家店这个钟点有没有空档，不是某一张订单。图上和「满单」列里的百分比，就是这一档的满单率。",
+    eg: "全连锁晚上满单率往上走，和可约率对着走。"
+  },
+  "最满两小时": {
+    short: "连续两小时里可约率最低的那一段。",
+    body: "从 20:30 开始、到 22:30 结束的这四个半小时，是六个月里可约率最低的两小时。用来回答一天里哪一段最难约。",
+    eg: "全期可约率 22.8%。8 月这段是 21.3%，10 月截至 28 日是 25.1%。"
+  },
+  "计入订单": {
+    short: "真正占住技师的单，取消和退款不算。",
+    body: "计入待评价、已评价、服务中、待到店、待起钟、挂单。已取消、已退款、已关闭不计入。抽查里这三类的起钟时间大多等于预约时间，按占位处理。待支付 3 单也不计。",
+    eg: "共 52.3 万条。10 月计到 10 月 28 日。"
+  },
+  "订单": {
+    short: "开工落在统计时段里的实际占用订单。",
+    body: "和计入订单是同一批单，再要求开工时间落在 09:00–24:00。门店榜默认只看不少于 800 单的店，单量太小的店不拿来比谁最满。",
+    eg: "搜门店名字可以看 800 单以下的店，它们不进默认排名。"
+  },
+  "开工占比": {
+    short: "这一档开始服务的订单占全天的比例。",
+    body: "它表示客人什么时候开工，不表示店里有多满。项目中位 60 分钟，所以占住技师的高峰比开工高峰大约晚一小时。",
+    eg: "开工最多在 19:00–20:30。店里最满落在 20:30–22:30。"
+  },
+  "距历史高位还剩": {
+    short: "离这家店自己的历史高峰还剩多少。",
+    body: "这家店、这个星期、这个钟点，距离过去六个月同时在钟人数的第 90 百分位还剩多少。越低，越接近这家店过去最忙的水平。可约率看现在空不空，这个数看离自己的高位还有多远。",
+    eg: "导出没有排班表。这个数用的是过去六个月实际在钟的人数。"
+  },
+  "在班": {
+    short: "当天第一单到最后一单，去掉头尾各 60 分钟。",
+    body: "头尾本来就在服务。留在口径里会把开门和打烊算成满单。中位一名技师一天 4 单，跨度约 8.6 小时。当天完全没有订单的技师不会进分母。",
+    eg: "可约率 = 在班但该半小时没在钟的人时 / 在班人时。"
+  },
+  "工作日": {
+    short: "周一到周五。",
+    body: "工作日下午是一天里比较空的时候。16:30–18:30 可约率 49.3%，17:00 前后大约 50%。晚上仍然收紧，和周末晚上接近。",
+    eg: "全期工作日可约率 39.7%，满单率 32.9%。"
+  },
+  "周末": {
+    short: "周六和周日。下午不再是空档。",
+    body: "周末从 14:00 起可约率就掉下来。周六 14:00 是 28.1%，周日是 26.7%。看周末时用这两天自己的下午可约率。",
+    eg: "全期周末可约率 29.1%，满单率 43.0%。"
+  },
+  "最满时段": {
+    short: "这家店自己可约率最低的连续两小时。",
+    body: "按整点近似，用来找这家店哪一段最紧。可以和全连锁的 20:30–22:30 不一样。",
+    eg: "欢乐颂店全期最满是 20:00–22:00，可约率 14.2%。"
+  },
+  "门店": {
+    short: "按订单上的门店名称，一共 207 家。",
+    body: "技师当天的在班和在钟，算进他做项目的那家店。上方的月份和星期筛选，对门店排名同样生效。",
+    eg: "订单不少于 800 的店里，全期最满是欢乐颂店 24.4%，最空是人民东路店 61.0%。"
+  }
+};
+function helpBtn(key){
+  return `<button class="help" type="button" data-help="${key}" aria-label="查看${key}的解释" title="查看解释">?</button>`;
+}
+let helpAnchor=null;
+function closeHelp(){
+  const pop=document.getElementById("help-pop");
+  if(pop) pop.remove();
+  helpAnchor=null;
+  document.querySelectorAll("button.help.on").forEach(b=>b.classList.remove("on"));
+}
+function openHelp(key, anchor){
+  const item=HELP[key];
+  if(!item) return;
+  if(helpAnchor===anchor){ closeHelp(); return; }
+  closeHelp();
+  const pop=document.createElement("div");
+  pop.id="help-pop";
+  pop.className="popover";
+  pop.innerHTML=`<div class="pop-head"><h3>${key}</h3><button class="help" type="button" data-close-help aria-label="关闭">×</button></div><p>${item.body}</p><div class="eg">${item.eg}</div>`;
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect();
+  const w=pop.offsetWidth, h=pop.offsetHeight;
+  let left=Math.max(12, Math.min(r.left, window.innerWidth-w-12));
+  let top=r.bottom+8;
+  if(top+h>window.innerHeight-8) top=Math.max(8, r.top-h-8);
+  pop.style.left=left+"px";
+  pop.style.top=top+"px";
+  anchor.classList.add("on");
+  helpAnchor=anchor;
+}
+function bindHelp(){
+  document.addEventListener("click", (e)=>{
+    const btn=e.target.closest("[data-help]");
+    if(btn){ e.preventDefault(); e.stopPropagation(); openHelp(btn.dataset.help, btn); return; }
+    if(e.target.closest("[data-close-help]")){ closeHelp(); return; }
+    if(!e.target.closest("#help-pop")) closeHelp();
+  });
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeHelp(); });
+  document.addEventListener("scroll", (e)=>{
+    const t=e.target;
+    if(t && t.nodeType===1 && t.closest && t.closest("#help-pop")) return;
+    closeHelp();
+  }, true);
+}
+function storeBoard(part){
+  const series=STORES.series["合计|"+part];
+  const idx=[];
+  STORES.names.forEach((_,i)=>{ if(series.n[i]>=800 && series.b[i]!=null) idx.push(i); });
+  idx.sort((a,b)=>series.b[a]-series.b[b]);
+  return {series, idx, full:idx[0], loose:idx[idx.length-1], mid:idx[Math.floor(idx.length/2)]};
+}
+function kpiBox(lab, key, val, foot, cls){
+  const show = `<div class="val">${Number(val).toFixed(1).replace(/\.0$/,"")}<small>%</small></div>`;
+  return `<div class="kpi ${cls||""}"><div class="lab"><span>${lab}</span>${helpBtn(key)}</div>${show}<div class="foot">${foot}</div></div>`;
+}
+let chapter=0;
+const CHAPTERS=[
+  {title:"结论", html(){
+    const all=RAW.packs["合计"]["全部"], wd=RAW.packs["合计"]["工作日"], we=RAW.packs["合计"]["周末"];
+    const aug=RAW.packs["8月"]["全部"], oct=RAW.packs["10月"]["全部"];
+    const s=storeBoard("全部");
+    return `<p class="kicker">先记住这几个数</p><h2>每天 20:30–22:30 最满</h2>
+      <div class="say"><p>这张看板看两件事：一天里哪一段约满了，在班的技师里还有多少人没在做项目。</p>
+      <p>全期可约率${helpBtn("可约率")} ${pct(all.overallBookable)}，满单率${helpBtn("满单率")} ${pct(all.overallFull)}。最满两小时${helpBtn("最满两小时")}是 ${all.tightFrom}–${all.tightTo}，可约率 ${pct(all.tightBookable)}。工作日 16:30–18:30 最空，可约率 49.3%。</p>
+      <p>周末从 14:00 起就紧。8 月整月最紧，可约率 ${pct(aug.overallBookable)}。10 月截至 28 日最松，${pct(oct.overallBookable)}。订单不少于 800 的店里，${STORES.names[s.full]} ${pct(s.series.b[s.full])}，${STORES.names[s.loose]} ${pct(s.series.b[s.loose])}。</p></div>
+      <div class="kpis">
+        ${kpiBox("可约率","可约率",all.overallBookable,"合计 · 全部","")}
+        ${kpiBox("满单率","满单率",all.overallFull,"至少 2 人在班且全部在钟","")}
+        ${kpiBox("最满两小时","最满两小时",all.tightBookable,all.tightFrom+"–"+all.tightTo,"hot")}
+        ${kpiBox("工作日可约率","工作日",wd.overallBookable,"周末 "+pct(we.overallBookable),"")}
+      </div>`;
+  }},
+  {title:"一天的形状", html(){
+    return `<p class="kicker">三条可约率，一条满单率</p><h2>下午能约，晚上收到一起</h2>
+      <div class="say"><p>绿线是全部，蓝线是工作日${helpBtn("工作日")}，红线是周末${helpBtn("周末")}，都是可约率${helpBtn("可约率")}。灰虚线是当前这一档的满单率${helpBtn("满单率")}。</p>
+      <p>工作日下午蓝线升到 50% 附近。周末红线从 14 点就落在 30% 以下。20 点以后三条线收到一起，可约率掉到 25% 以下，满单率往上走。</p></div>
+      <div id="r-line"></div>
+      <div class="read">读图：线越高越还能约。周末和工作日的差别在下午，晚上三条线收到一起。鼠标停在钟点上可以读数。</div>`;
+  }, draw(){
+    drawLine("r-line", HOURS, [
+      {name:"可约率 · 全部", color:"#0D7A6F", wide:true, data:byHour(RAW.packs["合计"]["全部"],"bookable")},
+      {name:"可约率 · 工作日", color:"#3D7EA6", data:byHour(RAW.packs["合计"]["工作日"],"bookable")},
+      {name:"可约率 · 周末", color:"#D64545", data:byHour(RAW.packs["合计"]["周末"],"bookable")},
+      {name:"满单率 · 全部", color:"#8A93A0", dash:true, data:byHour(RAW.packs["合计"]["全部"],"full")}
+    ]);
+  }},
+  {title:"开工和占钟", html(){
+    const pack=RAW.packs["合计"]["全部"];
+    const slots=["17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30"];
+    const rows=slots.map(slot=>{
+      const i=SLOTS.indexOf(slot);
+      const hot=pack.bookable[i]<25?" class='mark'":"";
+      return `<tr${hot}><td>${slot}</td><td>${pct(pack.share[i])}</td><td>${pct(pack.bookable[i])}</td><td>${pct(pack.full[i])}</td></tr>`;
+    }).join("");
+    return `<p class="kicker">客人开工的高峰，比店里最满早一小时</p><h2>19:00 开始忙，20:30 之后最满</h2>
+      <div class="say"><p>开工占比${helpBtn("开工占比")}最高在 19:00–20:30，每个半小时大约占全天订单的 5.3%–5.6%。项目中位 60 分钟，已经开工的项目还会再占一个小时。</p>
+      <p>所以可约率${helpBtn("可约率")}在开工占比还高的时候就先往下走，最满落在 20:30–22:30。排班如果只看预约开始时间，会把最满的那一段看早了。</p></div>
+      <div style="overflow:auto"><table><thead><tr><th>时段</th><th>开工占比${helpBtn("开工占比")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="read">读表：19:00 开工占比 5.5%，可约率已经从傍晚的 40% 多掉到 34.9%。22:30 开工只占 2.3%，可约率仍是全天最低的一档。</div>`;
+  }},
+  {title:"星期", html(){
+    const mon=RAW.dow[0], fri=RAW.dow[4], sat=RAW.dow[5], sun=RAW.dow[6];
+    return `<p class="kicker">周一到周五几乎叠在一起</p><h2>周末的差别在下午</h2>
+      <div class="say"><p>周一到周五 14:00 可约率${helpBtn("可约率")}在 46%–48%，17:00 大约 50%，20:00 掉到 26%–28%。</p>
+      <p>周六 14:00 是 ${pct(sat.h14)}，周日是 ${pct(sun.h14)}。周五 21:00 是 ${pct(fri.h21)}，周一同一钟点是 ${pct(mon.h21)}。周五晚上略紧，差距不大。真正拉开的是周末下午。</p></div>
+      <div id="r-dow"></div>
+      <div class="read">读图：绿柱是 14:00，蓝柱是 17:00，红柱是 20:00。周六、周日的绿柱和蓝柱一起矮下去，红柱七天都矮。</div>`;
+  }, draw(){
+    drawCols("r-dow", RAW.dow.map(r=>r.dow), [
+      {name:"14:00 可约率", color:"#5E9B92", data:RAW.dow.map(r=>r.h14)},
+      {name:"17:00 可约率", color:"#3D7EA6", data:RAW.dow.map(r=>r.h17)},
+      {name:"20:00 可约率", color:"#D64545", data:RAW.dow.map(r=>r.h20)}
+    ]);
+  }},
+  {title:"六个月", html(){
+    const names=["5月","6月","7月","8月","9月","10月"];
+    return `<p class="kicker">形状没变，松紧有一点差别</p><h2>8 月最紧，10 月截至 28 日最松</h2>
+      <div class="say"><p>六个月的时段曲线叠在一起：下午高，晚上低。8 月用红色，整月可约率 ${pct(RAW.packs["8月"]["全部"].overallBookable)}，最满两小时 ${pct(RAW.packs["8月"]["全部"].tightBookable)}。</p>
+      <p>10 月计到 28 日，整月 ${pct(RAW.packs["10月"]["全部"].overallBookable)}，最满两小时 ${pct(RAW.packs["10月"]["全部"].tightBookable)}。最满两小时六个月都是 20:30–22:30。</p></div>
+      <div id="r-months"></div>
+      <div id="r-mbar"></div>
+      <div class="read">读图：上面看一天里的形状，下面的柱子看整月。绿柱是可约率，红柱是满单率。8 月绿柱最矮、红柱最高。</div>`;
+  }, draw(){
+    const names=["5月","6月","7月","8月","9月","10月"];
+    drawLine("r-months", HOURS, names.map(name=>({
+      name, wide:name==="8月",
+      color:{"5月":"#8AA8A4","6月":"#5E9B92","7月":"#2F8A7B","8月":"#D64545","9月":"#3E6F8C","10月":"#C4843A"}[name],
+      data:byHour(RAW.packs[name]["全部"],"bookable")
+    })));
+    drawCols("r-mbar", names, [
+      {name:"可约率", color:"#0D7A6F", data:names.map(n=>RAW.packs[n]["全部"].overallBookable)},
+      {name:"满单率", color:"#D64545", data:names.map(n=>RAW.packs[n]["全部"].overallFull)}
+    ]);
+  }},
+  {title:"门店", html(){
+    const s=storeBoard("全部"), w=storeBoard("周末");
+    const full=s.full, loose=s.loose;
+    return `<p class="kicker">同样的口径，店和店可以差一倍</p><h2>最满和最空</h2>
+      <div class="say"><p>横条是全期可约率${helpBtn("可约率")}，越短越满。只画订单不少于 800 的 ${s.idx.length} 家店里最满的 12 家。</p>
+      <p>${STORES.names[full]} ${pct(s.series.b[full])}，${fmt(s.series.n[full])} 单。${STORES.names[loose]} ${pct(s.series.b[loose])}，${fmt(s.series.n[loose])} 单。这批店的中位是 ${STORES.names[s.mid]} ${pct(s.series.b[s.mid])}，和全连锁 ${pct(RAW.packs["合计"]["全部"].overallBookable)} 接近。</p>
+      <p>换成周末，最满是 ${STORES.names[w.full]} ${pct(w.series.b[w.full])}，最空是 ${STORES.names[w.loose]} ${pct(w.series.b[w.loose])}。点一条横条，回到看板看这家店和全连锁的时段曲线。</p></div>
+      <div id="r-store"></div>
+      <div class="read">读图：24% 左右的短条是最满的店，不是全连锁的平均。平均在 36% 附近。</div>`;
+  }, draw(){
+    const s=storeBoard("全部");
+    drawHBars("r-store", s.idx.slice(0,12).map(i=>({label:STORES.names[i], value:s.series.b[i], index:i, on:false})), (idx)=>{
+      storePick=idx; month="合计"; part="全部"; setView("board"); render();
+      document.getElementById("store-card").scrollIntoView({block:"start"});
+    });
+  }},
+  {title:"名词", html(){
+    const cards=Object.keys(HELP).map(key=>`<div><b>${key}</b> ${helpBtn(key)}<span>${HELP[key].short}</span></div>`).join("");
+    return `<p class="kicker">点右边的问号看完整解释和例子</p><h2>看板上的名词</h2>
+      <div class="say"><p>问号跟在名词旁边。点开是这个数怎么算、拿来干什么。同一套解释在看板的表头上也能点。</p></div>
+      <div class="gloss">${cards}</div>`;
+  }},
+  {title:"怎么用", html(){
+    return `<p class="kicker">按这个顺序看</p><h2>先看全连锁，再切周末，再点店</h2>
+      <div class="say">
+        <p>1. 看板先停在合计、全部。看 20:30 以后有多满，再看 16:30–18:30 还空着多少。</p>
+        <p>2. 排周末时切到周末，用周末下午的可约率。周六 14:00 是 28.1%，工作日 17:00 大约 50%。</p>
+        <p>3. 看某一家店之前，先确认订单不少于 800，再点开和全连锁的曲线比。800 单以下的店可以搜名字，不进默认的最满排名。</p>
+        <p>4. 可约率${helpBtn("可约率")}量的是在班里的空闲。导出没有排班，也没有约满后被拒绝的记录。晚上如果还有人约不进去，真实可约率只会更低或与这里持平。</p>
+      </div>
+      <div class="read">10 月只计到 10 月 28 日。拿 10 月和前面的整月比的时候，记得少了最后三天。</div>`;
+  }}
+];
+function renderReport(){
+  const steps=document.getElementById("report-steps");
+  steps.replaceChildren(...CHAPTERS.map((c,i)=>{
+    const b=el(`<button class="pill${i===chapter?" on":""}" type="button"></button>`);
+    b.textContent=(i+1)+" "+c.title;
+    b.onclick=()=>{chapter=i; closeHelp(); renderReport(); window.scrollTo(0,0);};
+    return b;
+  }));
+  const c=CHAPTERS[chapter];
+  const body=document.getElementById("report-body");
+  const prev=chapter===0?" disabled":"";
+  const nextLabel=chapter===CHAPTERS.length-1?"回到看板":"下一节";
+  body.innerHTML=c.html()+`<div class="pager"><button class="pill" type="button" id="r-prev"${prev}>上一节</button><span class="mid">${chapter+1} / ${CHAPTERS.length}</span><button class="pill" type="button" id="r-next">${nextLabel}</button></div>`;
+  if(c.draw) c.draw();
+  body.querySelector("#r-prev").onclick=()=>{ if(chapter>0){ chapter--; closeHelp(); renderReport(); window.scrollTo(0,0);} };
+  body.querySelector("#r-next").onclick=()=>{
+    closeHelp();
+    if(chapter<CHAPTERS.length-1){ chapter++; renderReport(); window.scrollTo(0,0); }
+    else setView("board");
+  };
+}
+function setView(view){
+  document.body.dataset.view=view;
+  document.querySelectorAll("[data-view-btn]").forEach(b=>b.classList.toggle("on", b.dataset.viewBtn===view));
+  closeHelp();
+  if(view==="report"){
+    if(location.hash!=="#report") history.replaceState(null, "", "#report");
+    renderReport();
+  } else if(location.hash==="#report"){
+    history.replaceState(null, "", location.pathname+location.search);
+  }
+  window.scrollTo(0,0);
+}
+
 function render(){
+  closeHelp();
   const pack=RAW.packs[month][part];
   renderFilters();
   renderKpis(pack);
@@ -530,6 +853,11 @@ function render(){
 }
 renderStatic();
 render();
+bindHelp();
+document.querySelectorAll("[data-view-btn]").forEach(b=>{
+  b.addEventListener("click", ()=>setView(b.dataset.viewBtn));
+});
+if(location.hash==="#report") setView("report");
 </script>
 </body>
 </html>
