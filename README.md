@@ -4,6 +4,8 @@
 
 页面：https://zc771824-beep.github.io/myy-slot-fullness/
 
+打法：https://zc771824-beep.github.io/myy-slot-fullness/#play
+
 讲解：https://zc771824-beep.github.io/myy-slot-fullness/#report
 
 全期可约率 36.1%。每天最满是 20:30–22:30（可约率 22.8%）。工作日 16:30–18:30 最空。8 月最紧，10 月截至 28 日最松。

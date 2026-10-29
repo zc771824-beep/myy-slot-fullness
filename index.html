@@ -108,8 +108,16 @@ button.help:hover,button.help.on{background:var(--brand);color:#fff;border-color
 .popover p{font-size:13.5px;color:var(--ink2)}
 .popover .eg{margin-top:8px;font-size:12.5px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:8px 10px}
 #report{display:none}
+#play{display:none}
 body[data-view="report"] #board{display:none}
 body[data-view="report"] #report{display:block}
+body[data-view="play"] #board{display:none}
+body[data-view="play"] #play{display:block}
+.plays{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.plays .card{margin:0}
+.plays h2{margin-bottom:6px}
+.plays p{font-size:13.5px;color:var(--ink2)}
+@media(max-width:800px){.plays{grid-template-columns:1fr}}
 .steps{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:4px 0 12px;z-index:6}
 .kicker{font-size:12px;color:var(--brand);font-weight:650;margin-bottom:4px}
 .say{font-size:15px;color:var(--ink2);margin:8px 0 14px}
@@ -148,6 +156,7 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
     <div class="viewbar">
       <button class="pill on" type="button" data-view-btn="board">看板</button>
       <button class="pill" type="button" data-view-btn="report">讲解</button>
+      <button class="pill" type="button" data-view-btn="play">打法</button>
     </div>
   </header>
   <div id="board">
@@ -220,6 +229,7 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
     <div class="steps" id="report-steps"></div>
     <div class="card" id="report-body"></div>
   </div>
+  <div id="play"></div>
   <footer>来源：2026-10-28 项目订单列表导出 · 预约到店日 2026-05-01 至 2026-10-28</footer>
 </div>
 <script>
@@ -875,16 +885,120 @@ function renderReport(){
     else setView("board");
   };
 }
+function playGroups(){
+  const s=STORES.series["合计|全部"];
+  const g={cap:[], pm:[], loose:[], rest:[]};
+  STORES.names.forEach((name,i)=>{
+    if(isMuu(name) || s.n[i]<800 || s.b[i]==null) return;
+    const h17=s.hb[i][6], h20=s.hb[i][9];
+    if(h17!=null && h20!=null && h17<32 && h20<25) g.cap.push(i);
+    else if(s.b[i]>=45) g.loose.push(i);
+    else if(h17!=null && h20!=null && h17>=40 && h20<25) g.pm.push(i);
+    else g.rest.push(i);
+  });
+  g.cap.sort((a,b)=>s.b[a]-s.b[b]);
+  g.pm.sort((a,b)=>s.b[a]-s.b[b]);
+  g.loose.sort((a,b)=>s.b[b]-s.b[a]);
+  g.rest.sort((a,b)=>s.b[a]-s.b[b]);
+  return g;
+}
+function playOrders(ids){
+  const s=STORES.series["合计|全部"];
+  return ids.reduce((a,i)=>a+s.n[i],0);
+}
+function playTable(ids){
+  const s=STORES.series["合计|全部"];
+  const sd=STORES.series["合计|工作日"];
+  const sw=STORES.series["合计|周末"];
+  const rows=ids.map(i=>`<tr><td>${STORES.names[i]}</td><td>${fmt(s.n[i])}</td><td>${pct(s.b[i])}</td><td>${pctOr(s.hb[i][6])}</td><td>${pctOr(s.hb[i][9])}</td><td>${pctOr(sd.b[i])}</td><td>${pctOr(sw.b[i])}</td></tr>`).join("");
+  return `<div style="overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:12px"><table><thead><tr><th>门店</th><th>订单</th><th>全天可约率</th><th>17:00</th><th>20:00</th><th>工作日</th><th>周末</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderPlay(){
+  const g=playGroups();
+  const s=STORES.series["合计|全部"];
+  const muu=[];
+  STORES.names.forEach((name,i)=>{ if(isMuu(name) && s.b[i]!=null) muu.push(i); });
+  muu.sort((a,b)=>s.b[a]-s.b[b]);
+  const dong=STORES.names.findIndex(n=>n==="东门店");
+  const listed=g.cap.concat(g.pm, g.loose, g.rest);
+  const pmShare=(playOrders(g.pm)/playOrders(listed)*100).toFixed(1);
+  const eveTight=STORES.names.filter((name,i)=>!isMuu(name) && s.n[i]>=800 && s.hb[i][9]!=null && s.hb[i][9]<25).length;
+  const host=document.getElementById("play");
+  host.innerHTML=`
+    <div class="plays">
+      <div class="card"><h2>工作日卖 15:30–17:30</h2><p>这段开工的项目，做完还落在 16:30–18:30。工作日这段可约率 49.3%，是全天最空的两小时。</p></div>
+      <div class="card"><h2>19:00 后守住原价</h2><p>开工高峰在 19:00–20:30，店里最满在 20:30–22:30，可约率 22.8%。晚上再降价，接不住。</p></div>
+      <div class="card"><h2>周末从 14:00 按晚班排</h2><p>周六 14:00 可约率 28.1%，周日 26.7%。周末下午不要抄工作日下午的活动和班次。</p></div>
+    </div>
+    <div class="card">
+      <p class="kicker">订单不少于 800 的 177 家麦悠悠门店</p>
+      <h2>先分店，再选打法</h2>
+      <div class="say">
+        <p>全连锁晚上都紧、工作日下午都松，所以钟点上的三件事每家店都适用。店和店的差别在于：有的店下午也已经满了，有的店晚上还有空。</p>
+        <p>下面按全期、全部来分。${g.cap.length} 家全天都紧，先加人。${g.pm.length} 家下午有空、晚上满，卖下午、守晚上。${g.loose.length} 家全天都松，先找客人。其余 ${g.rest.length} 家照连锁统一的钟点打法执行。</p>
+      </div>
+      <div id="play-line"></div>
+      <div class="read">绿线是工作日可约率，红线是周末。工作日 16 点到 18 点拱起来，周末从 14 点就落在下面。两条线到了 20 点以后收到一起。</div>
+    </div>
+    <div class="card">
+      <p class="kicker">${g.cap.length} 家 · ${fmt(playOrders(g.cap))} 单</p>
+      <h2>全天都紧：先加人，先别拉新</h2>
+      <div class="say"><p>这几家 17:00 可约率已经低于 32%，20:00 低于 25%。下午没有空档可以拿来做活动。晚班多排一个人，比晚上做折扣有用。新客可以导到附近更空的店。</p></div>
+      ${playTable(g.cap)}
+    </div>
+    <div class="card">
+      <p class="kicker">${g.pm.length} 家 · ${fmt(playOrders(g.pm))} 单</p>
+      <h2>下午有空、晚上满：卖下午，守晚上</h2>
+      <div class="say"><p>17:00 可约率不低于 40%，20:00 低于 25%。工作日把体验价放在 15:30–17:30 开工。20:00 以后维持原价，约满就停。这 ${g.pm.length} 家占这 177 家店订单的 ${pmShare}%。</p></div>
+      ${playTable(g.pm)}
+    </div>
+    <div class="card">
+      <p class="kicker">${g.loose.length} 家 · ${fmt(playOrders(g.loose))} 单</p>
+      <h2>全天都松：先把空档卖出去</h2>
+      <div class="say"><p>全天可约率不低于 45%。人民东路店 20:00 还有 48.0% 可约。这批店先做新客和下午体验，人手先别加。加了人，空档还会更大。运达锦绣广场店是这批里晚上相对紧的，20:00 可约率 28.2%，晚上少做折扣。</p></div>
+      ${playTable(g.loose)}
+    </div>
+    <div class="card">
+      <p class="kicker">其余 ${g.rest.length} 家 · ${fmt(playOrders(g.rest))} 单</p>
+      <h2>照钟点打，周末单独看</h2>
+      <div class="say">
+        <p>这批店的全天可约率大多在 32%–45%。17:00 通常还有空，20:00 已经紧。用连锁统一的三件事就够：工作日卖 15:30–17:30 开工，19:00 后不降价，周末从 14:00 按晚班排。</p>
+        <p>东门店是例外：17:00 可约率 ${pct(s.hb[dong][6])}，20:00 还有 ${pct(s.hb[dong][9])}。这家店要卖的是晚上，不是下午。</p>
+        <p>工作日可约率不低于 38%、周末掉到 25% 以下的店，周末从 14:00 按晚班的密度排。最明显的是新场店（周末 20.6%）、三林东地铁站店（23.5%）、华夏二路店（22.6%）、前海科兴科学园店（23.4%）、华理美乐源店（23.6%）、松江大橘邻里店（24.8%）、七宝宝龙城店（24.6%）、九新公路店（24.6%）。其中六家已经在「卖下午」那张表里，周末还要再加一档人手。</p>
+      </div>
+    </div>
+    <div class="card">
+      <p class="kicker">4 家 · ${fmt(playOrders(muu))} 单</p>
+      <h2>MUU 单独打</h2>
+      <div class="say"><p>四家全天可约率都在 40% 以上，晚上也比麦悠悠松。打法靠近「先找客人」。嘉里中心店 20:00 可约率 34.5%，是四家里晚上最紧的一家，20:00 后少做折扣。</p></div>
+      ${playTable(muu)}
+    </div>
+    <div class="card">
+      <h2>这三件事会把已经满的时段再塞满</h2>
+      <div class="say">
+        <p>19:00 以后做全连锁折扣。开工会堆进 20:30–22:30，这段可约率只有 22.8%。订单不少于 800 的店里，有 ${eveTight} 家 20:00 可约率已经低于 25%。</p>
+        <p>用工作日下午的班次和活动去排周末。周末 14:00 的可约率只有工作日的大约一半。</p>
+        <p>给全天可约率 45% 以上的店先加人。人民东路店晚上还有将近一半的在班时间是空的。</p>
+      </div>
+      <div class="read">可约率${helpBtn("可约率")}是在班里的空闲。在班${helpBtn("在班")}取技师当天第一单到最后一单，去掉首尾各 60 分钟。导出没有排班，也没有约满后被拒绝的记录。晚上如果还有人约不进去，真实可约率只会更低或与这里持平。8 月整月最紧，10 月截至 28 日最松，最满的钟点六个月都是 20:30–22:30，打法按钟点走，不按月份改。</div>
+    </div>`;
+  drawLine("play-line", HOURS, [
+    {name:"可约率 · 工作日", color:"#3D7EA6", wide:true, data:byHour(RAW.packs["合计"]["工作日"],"bookable")},
+    {name:"可约率 · 周末", color:"#D64545", data:byHour(RAW.packs["合计"]["周末"],"bookable")}
+  ]);
+}
 function setView(view){
   document.body.dataset.view=view;
   document.querySelectorAll("[data-view-btn]").forEach(b=>b.classList.toggle("on", b.dataset.viewBtn===view));
   closeHelp();
-  if(view==="report"){
-    if(location.hash!=="#report") history.replaceState(null, "", "#report");
-    renderReport();
-  } else if(location.hash==="#report"){
+  const want=view==="report"?"#report":view==="play"?"#play":"";
+  if(want){
+    if(location.hash!==want) history.replaceState(null, "", want);
+  } else if(location.hash==="#report" || location.hash==="#play"){
     history.replaceState(null, "", location.pathname+location.search);
   }
+  if(view==="report") renderReport();
+  if(view==="play") renderPlay();
   window.scrollTo(0,0);
 }
 
@@ -905,6 +1019,7 @@ document.querySelectorAll("[data-view-btn]").forEach(b=>{
   b.addEventListener("click", ()=>setView(b.dataset.viewBtn));
 });
 if(location.hash==="#report") setView("report");
+else if(location.hash==="#play") setView("play");
 </script>
 </body>
 </html>
