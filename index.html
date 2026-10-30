@@ -75,7 +75,18 @@ tr.loose td{background:var(--brand-soft)}
 .legend{display:flex;gap:14px;font-size:12px;color:var(--sub);margin-bottom:10px}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .method p{font-size:13.5px;color:var(--ink2);margin-bottom:8px}
-input.q{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);min-width:200px;outline:none}
+input.q{font:inherit;font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);min-width:220px;outline:none}
+input.q:focus{border-color:var(--brand)}
+.pick-box{position:relative}
+.suggest{position:absolute;left:0;top:38px;z-index:8;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:280px;max-height:280px;overflow:auto}
+.suggest button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:13px;padding:8px 12px;border:0;border-bottom:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.suggest button:last-child{border-bottom:0}
+.suggest button:hover,.suggest button.on{background:var(--brand-soft)}
+.suggest .meta{color:var(--faint);font-size:12px;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 10px}
+.chips:empty{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);border-radius:999px;padding:4px 6px 4px 10px;font-size:12.5px}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--sub);font:inherit;font-size:15px;line-height:1;padding:0 4px}
 .store-scroll{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .store-scroll th{position:sticky;top:0;background:#fff;z-index:1}
 tr.click td{cursor:pointer}
@@ -202,11 +213,15 @@ footer{margin-top:8px;font-size:12px;color:var(--faint)}
     <h2>门店<button class="help" type="button" data-help="门店" aria-label="查看门店的解释">?</button></h2>
     <p class="note" id="store-note"></p>
     <div class="filters">
-      <input class="q" id="store-q" placeholder="搜门店" />
+      <div class="pick-box">
+        <input class="q" id="store-q" placeholder="搜门店，可多选比较" autocomplete="off" />
+        <div id="store-suggest" class="suggest" hidden></div>
+      </div>
       <button class="pill on" type="button" data-sort="full">最满优先</button>
       <button class="pill" type="button" data-sort="loose">最空优先</button>
       <button class="pill" type="button" data-sort="orders">订单多</button>
     </div>
+    <div id="store-chips" class="chips"></div>
     <div id="bar-store-rank"></div><div class="store-scroll" style="margin-top:12px"><table id="store-table"></table></div>
     <div id="muu-block">
       <h2 style="margin-top:18px">MUU</h2>
@@ -335,9 +350,20 @@ function renderStatic(){
 }
 
 let storeSort = "full";
-let storePick = null;
+let storePicks = [];
+let storeLimitMsg = "";
+const PICK_COLORS = ["#0D7A6F","#D64545","#3D7EA6","#B86E1A","#7A4EAB","#2F8F4E","#C45C8A","#1F6F8A"];
+const PICK_MAX = 8;
 function pctOr(n){return n==null?"—":pct(n);}
 function isMuu(name){return name.indexOf("MUU")>=0;}
+function storePicked(i){return storePicks.indexOf(i)>=0;}
+function toggleStore(i){
+  const at=storePicks.indexOf(i);
+  if(at>=0){ storePicks.splice(at,1); storeLimitMsg=""; }
+  else if(storePicks.length>=PICK_MAX) storeLimitMsg="最多同时比 8 家。先移出一家，再加新的。";
+  else { storePicks.push(i); storeLimitMsg=""; }
+  renderStores();
+}
 function storeHead(){
   return `<thead><tr><th>门店${helpBtn("门店")}</th><th>订单${helpBtn("订单")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>17:00 可约率</th><th>20:00 可约率</th><th>最满时段${helpBtn("最满时段")}</th></tr></thead>`;
 }
@@ -346,10 +372,10 @@ function storeRows(names, series, indexes){
   indexes.forEach(i=>{
     const hb=series.hb[i];
     const tr=document.createElement("tr");
-    tr.className="click"+(i===storePick?" pick":"");
+    tr.className="click"+(storePicked(i)?" pick":"");
     const tight=series.tf[i]?`${series.tf[i]}–${series.tt[i]} · ${pct(series.tb[i])}`:"—";
     tr.innerHTML=`<td>${names[i]}</td><td>${fmt(series.n[i])}</td><td>${pct(series.b[i])}</td><td>${pctOr(series.f[i])}</td><td>${pctOr(hb&&hb[6])}</td><td>${pctOr(hb&&hb[9])}</td><td>${tight}</td>`;
-    tr.onclick=()=>{ storePick=i; renderStores(); };
+    tr.onclick=()=>toggleStore(i);
     body.appendChild(tr);
   });
   return body;
@@ -385,7 +411,7 @@ function renderStores(){
     if(series.b[i]>series.b[looseI]) looseI=i;
   });
   document.getElementById("store-note").textContent = eligible.length
-    ? `跟上方同一个月份和星期筛选，不含 MUU。订单不少于 800 的 ${eligible.length} 家店里，${names[fullI]}最满（可约率 ${pct(series.b[fullI])}），${names[looseI]}最空（${pct(series.b[looseI])}）。表里默认只放这批店，搜名字可以看更小的店。闭店、麦舍、麦子已剔除。点一行看时段。`
+    ? `跟上方同一个月份和星期筛选，不含 MUU。订单不少于 800 的 ${eligible.length} 家店里，${names[fullI]}最满（可约率 ${pct(series.b[fullI])}），${names[looseI]}最空（${pct(series.b[looseI])}）。表里默认只放这批店，搜名字可以看更小的店。闭店、麦舍、麦子已剔除。点一行加入对比，再点一次移出。`
     : "当前筛选下没有订单不少于 800 的门店。";
   const rows=[];
   names.forEach((name,i)=>{
@@ -405,7 +431,7 @@ function renderStores(){
   const rankHost=document.getElementById("bar-store-rank");
   const rank=rows.slice(0,12);
   if(!rank.length) rankHost.replaceChildren();
-  else drawHBars("bar-store-rank", rank.map(i=>({label:names[i], value:series.b[i], index:i, on:i===storePick})), (idx)=>{storePick=idx; renderStores();});
+  else drawHBars("bar-store-rank", rank.map(i=>({label:names[i], value:series.b[i], index:i, on:storePicked(i)})), (idx)=>toggleStore(idx));
   const muu=[];
   names.forEach((name,i)=>{
     if(!isMuu(name) || series.b[i]==null) return;
@@ -417,28 +443,91 @@ function renderStores(){
   muuBlock.style.display=muu.length?"":"none";
   if(muu.length){
     const orders=muu.reduce((s,i)=>s+series.n[i],0);
-    document.getElementById("muu-note").textContent=`${muu.length} 家，${fmt(orders)} 单。不进上面的排名。点一行可以和全连锁比。`;
+    document.getElementById("muu-note").textContent=`${muu.length} 家，${fmt(orders)} 单。不进上面的排名。点一行加入上面的对比。`;
     document.getElementById("muu-table").innerHTML=storeHead();
     document.getElementById("muu-table").appendChild(storeRows(names, series, muu));
-    drawHBars("bar-muu", muu.map(i=>({label:names[i].replace("MUU SPA ",""), value:series.b[i], index:i, on:i===storePick})), (idx)=>{storePick=idx; renderStores();});
+    drawHBars("bar-muu", muu.map(i=>({label:names[i].replace("MUU SPA ",""), value:series.b[i], index:i, on:storePicked(i)})), (idx)=>toggleStore(idx));
   }
+  renderChips(names);
+  renderSuggest(series, names);
   const chart=document.getElementById("store-chart");
-  if(storePick==null || series.b[storePick]==null || (q && names[storePick].indexOf(q)<0)){
-    chart.innerHTML=`<p class="note" style="margin:12px 0 0">点一家店或上面的横条，和全连锁的时段曲线对比。</p>`;
+  const live=storePicks.filter(i=>series.b[i]!=null);
+  if(!live.length){
+    chart.innerHTML=`<p class="note" style="margin:12px 0 0">${storeLimitMsg||"搜索或点一行，把店加进对比。可以多选，可约率曲线叠在一起。只留一家时，图上还会画出满单率和距历史高位还剩。"}</p>`;
     return;
   }
-  const hb=series.hb[storePick], hf=series.hf[storePick];
-  chart.innerHTML=`<h2 style="margin-top:8px">${names[storePick]}</h2><p class="note">${month} · ${part} · 可约率 ${pct(series.b[storePick])} · 满单率 ${pctOr(series.f[storePick])} · 距历史高位还剩 ${pctOr(series.c?series.c[storePick]:null)} · ${fmt(series.n[storePick])} 单。${storeMeta(names[storePick])}</p><p class="note">灰线是同一筛选下的全连锁可约率。琥珀色是这家店离自己历史高位还剩多少。</p><div id="store-line"></div>`;
-  const hc = series.hc ? series.hc[storePick] : null;
-  const lines=[
-    {name:"本店可约率", color:"#0D7A6F", data:hb, wide:true},
-    {name:"连锁可约率", color:"#8A93A0", data:byHour(RAW.packs[month][part],"bookable")},
-    {name:"本店满单率", color:"#D64545", data:hf, dash:true}
-  ];
-  if(hc) lines.push({name:"距历史高位还剩", color:"#B86E1A", data:hc});
+  if(live.length===1){
+    const storePick=live[0];
+    const hb=series.hb[storePick], hf=series.hf[storePick];
+    chart.innerHTML=`<h2 style="margin-top:8px">${names[storePick]}</h2><p class="note">${month} · ${part} · 可约率 ${pct(series.b[storePick])} · 满单率 ${pctOr(series.f[storePick])} · 距历史高位还剩 ${pctOr(series.c?series.c[storePick]:null)} · ${fmt(series.n[storePick])} 单。${storeMeta(names[storePick])}</p><p class="note">灰线是同一筛选下的全连锁可约率。琥珀色是这家店离自己历史高位还剩多少。再加一家，就改成多店可约率对比。</p><div id="store-line"></div>`;
+    const hc = series.hc ? series.hc[storePick] : null;
+    const lines=[
+      {name:"本店可约率", color:"#0D7A6F", data:hb, wide:true},
+      {name:"连锁可约率", color:"#8A93A0", data:byHour(RAW.packs[month][part],"bookable")},
+      {name:"本店满单率", color:"#D64545", data:hf, dash:true}
+    ];
+    if(hc) lines.push({name:"距历史高位还剩", color:"#B86E1A", data:hc});
+    drawLine("store-line", HOURS, lines);
+    return;
+  }
+  const cmp=live.map((i,k)=>{
+    const hb=series.hb[i];
+    const tight=series.tf[i]?`${series.tf[i]}–${series.tt[i]} · ${pct(series.tb[i])}`:"—";
+    return `<tr><td><i class="sw" style="background:${PICK_COLORS[k]}"></i>${names[i]}</td><td>${fmt(series.n[i])}</td><td>${pct(series.b[i])}</td><td>${pctOr(hb&&hb[6])}</td><td>${pctOr(hb&&hb[9])}</td><td>${tight}</td></tr>`;
+  }).join("");
+  chart.innerHTML=`<h2 style="margin-top:8px">已选 ${live.length} 家</h2><p class="note">${month} · ${part}。比的是各店可约率，灰虚线是全连锁。只留一家时，会再加上满单率和距历史高位还剩。${storeLimitMsg}</p><div style="overflow:auto"><table><thead><tr><th>对比</th><th>订单</th><th>全天可约率</th><th>17:00</th><th>20:00</th><th>最满时段</th></tr></thead><tbody>${cmp}</tbody></table></div><div id="store-line"></div>`;
+  const lines=live.map((i,k)=>({name:names[i], color:PICK_COLORS[k], data:series.hb[i], wide:k===0}));
+  lines.push({name:"连锁可约率", color:"#8A93A0", data:byHour(RAW.packs[month][part],"bookable"), dash:true});
   drawLine("store-line", HOURS, lines);
 }
+function renderChips(names){
+  const host=document.getElementById("store-chips");
+  if(!storePicks.length){ host.innerHTML=""; return; }
+  host.innerHTML=storePicks.map((i,k)=>`<span class="chip"><i class="sw" style="background:${PICK_COLORS[k]}"></i>${names[i]}<button type="button" data-rm="${i}" aria-label="移出${names[i]}">×</button></span>`).join("")
+    +`<button class="pill" type="button" id="store-clear">清空</button>`;
+  host.querySelectorAll("[data-rm]").forEach(b=>b.addEventListener("click", ()=>toggleStore(Number(b.dataset.rm))));
+  document.getElementById("store-clear").addEventListener("click", ()=>{ storePicks=[]; storeLimitMsg=""; renderStores(); });
+}
+function renderSuggest(series, names){
+  const box=document.getElementById("store-suggest");
+  const input=document.getElementById("store-q");
+  const q=(input.value||"").trim();
+  if(!q || document.activeElement!==input){ box.hidden=true; box.innerHTML=""; return; }
+  const hits=[];
+  names.forEach((name,i)=>{ if(series.b[i]!=null && name.indexOf(q)>=0) hits.push(i); });
+  hits.sort((a,b)=>(series.b[a]??999)-(series.b[b]??999));
+  const show=hits.slice(0,10);
+  if(!show.length){ box.hidden=true; box.innerHTML=""; return; }
+  box.hidden=false;
+  const more=hits.length-show.length;
+  box.innerHTML=show.map(i=>{
+    const info=INFO[names[i]];
+    const city=info&&info.city?info.city:"";
+    return `<button type="button" data-add="${i}" class="${storePicked(i)?"on":""}">${names[i]}<span class="meta">${city} ${pct(series.b[i])}${storePicked(i)?" · 已选":""}</span></button>`;
+  }).join("")+(more?`<div class="meta" style="padding:8px 12px">还有 ${more} 家，继续输入缩小范围。</div>`:"");
+  box.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("mousedown", ev=>{
+      ev.preventDefault();
+      toggleStore(Number(btn.dataset.add));
+    });
+  });
+}
 document.getElementById("store-q").addEventListener("input", ()=>renderStores());
+document.getElementById("store-q").addEventListener("focus", ()=>renderStores());
+document.getElementById("store-q").addEventListener("keydown", ev=>{
+  if(ev.key!=="Enter") return;
+  const first=document.querySelector("#store-suggest button:not(.on)");
+  if(!first) return;
+  ev.preventDefault();
+  toggleStore(Number(first.dataset.add));
+});
+document.addEventListener("click", ev=>{
+  const box=document.querySelector(".pick-box");
+  if(box && !box.contains(ev.target)){
+    const sug=document.getElementById("store-suggest");
+    if(sug) sug.hidden=true;
+  }
+});
 document.querySelectorAll("[data-sort]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     storeSort=btn.dataset.sort;
@@ -692,7 +781,7 @@ const HELP = {
   },
   "门店": {
     short: "麦悠悠 177 家参与排名。MUU 2 家单独列出。闭店、麦舍、麦子不在这份名单里。",
-    body: "技师当天的在班和在钟，算进他做项目的那家店。上方的月份和星期筛选，对门店排名和 MUU 同样生效。",
+    body: "技师当天的在班和在钟，算进他做项目的那家店。上方的月份和星期筛选，对门店排名和 MUU 同样生效。搜索框和表格都可以多选，选中的店叠在同一张可约率曲线上。只选一家时，另外画出满单率和距历史高位还剩。",
     eg: "订单不少于 800 的店里，全期最满是万科翡翠公园店 39.0%，最空是人民东路店 85.2%。"
   }
 };
@@ -850,14 +939,14 @@ const CHAPTERS=[
   }, draw(){
     const s=storeBoard("全部");
     drawHBars("r-store", s.idx.slice(0,12).map(i=>({label:STORES.names[i], value:s.series.b[i], index:i, on:false})), (idx)=>{
-      storePick=idx; month="合计"; part="全部"; setView("board"); render();
+      storePicks=[idx]; storeLimitMsg=""; month="合计"; part="全部"; setView("board"); render();
       document.getElementById("store-card").scrollIntoView({block:"start"});
     });
     const muu=[];
     STORES.names.forEach((name,i)=>{ if(isMuu(name) && s.series.b[i]!=null) muu.push(i); });
     muu.sort((a,b)=>s.series.b[a]-s.series.b[b]);
     drawHBars("r-muu", muu.map(i=>({label:STORES.names[i].replace("MUU SPA ",""), value:s.series.b[i], index:i, on:false})), (idx)=>{
-      storePick=idx; month="合计"; part="全部"; setView("board"); render();
+      storePicks=[idx]; storeLimitMsg=""; month="合计"; part="全部"; setView("board"); render();
       document.getElementById("muu-block").scrollIntoView({block:"start"});
     });
   }},
