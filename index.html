@@ -323,7 +323,7 @@ function renderBars(pack){
   document.getElementById("bars").replaceChildren(...rows);
 }
 function renderHalf(pack){
-  document.getElementById("half-note").textContent = month+" · "+part+"。这张表是连锁汇总。距历史高位还剩在点开的单店曲线上。";
+  document.getElementById("half-note").textContent = month+" · "+part+"。这张表是连锁汇总。开工占比 = 这一档起钟的订单 ÷ 当天 09:00–24:00 的全部开工订单。距历史高位还剩在点开的单店曲线上。";
   const head=el(`<thead><tr><th>时段</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th><th>开工占比${helpBtn("开工占比")}</th></tr></thead>`);
   const body=document.createElement("tbody");
   SLOTS.forEach((slot,i)=>{
@@ -767,9 +767,9 @@ const HELP = {
     eg: "搜门店名字可以看 800 单以下的店，它们不进默认排名。"
   },
   "开工占比": {
-    short: "这一档开始服务的订单占全天的比例。",
-    body: "它表示客人什么时候开工，不表示店里有多满。项目中位 60 分钟，所以占住技师的高峰比开工高峰大约晚一小时。",
-    eg: "开工最多在 19:00–20:30。店里最满落在 19:30–21:30。"
+    short: "这一档起钟的订单，占当天 09:00–24:00 全部开工订单的百分比。",
+    body: "和计入订单是同一批单。开工时间用起钟，没有起钟的用预约到店时间。分母是当天 09:00 到 24:00 之间开工的订单数，分子是落在这 30 分钟里的订单数。半小时表上 19:00 的 5.5%，就是当天这些订单里有 5.5% 在 19:00–19:30 起钟。表从 11:00 画到 22:30，09:00–11:00 和 23:00–24:00 的开工仍算在分母里。项目中位 60 分钟，开了工的单还会再占大约一个小时，所以店里最满比开工高峰晚一档。同一行的可约率是这一档还有多少人空着，满单率是这一档在班的人是不是都在钟。",
+    eg: "全期最高是 20:00，5.6%。19:00–20:30 四个半小时每个大约 5.4%–5.6%。"
   },
   "距历史高位还剩": {
     short: "点开一家店，看它离自己的历史高峰还剩多少。",
@@ -903,10 +903,10 @@ const CHAPTERS=[
       return `<tr${hot}><td>${slot}</td><td>${pct(pack.share[i])}</td><td>${pct(pack.bookable[i])}</td><td>${pct(pack.full[i])}</td></tr>`;
     }).join("");
     return `<p class="kicker">客人开工的高峰，比店里最满早一小时</p><h2>19:00 开始忙，20:30 之后最满</h2>
-      <div class="say"><p>开工占比${helpBtn("开工占比")}最高在 19:00–20:30，每个半小时大约占全天订单的 5.3%–5.6%。项目中位 60 分钟，已经开工的项目还会再占一个小时。</p>
+      <div class="say"><p>开工占比${helpBtn("开工占比")}是这一档起钟的订单占当天 09:00–24:00 全部开工订单的比例。19:00–20:30 每个半小时大约 5.4%–5.6%。项目中位 60 分钟，已经开工的项目还会再占一个小时。</p>
       <p>开工高峰在 19:00–20:30，店里最满落在 19:30–21:30，两段叠在一起。22:30 人还在打卡、项目已经做完，可约率回到 54%。</p></div>
       <div style="overflow:auto"><table><thead><tr><th>时段</th><th>开工占比${helpBtn("开工占比")}</th><th>可约率${helpBtn("可约率")}</th><th>满单率${helpBtn("满单率")}</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="read">读表：19:00 开工占比 5.6%，可约率 41.9%。20:30 可约率 35.7%，是这张表里最低的一档。22:30 开工只占 2.3%，可约率回到 54.4%。</div>`;
+      <div class="read">读表：19:00 这一档开工占比 5.5%，就是当天开工订单里有 5.5% 在 19:00–19:30 起钟，这一档可约率 42.0%。20:30 可约率 35.7%，是这张表里最低的一档。22:30 开工只占 2.3%，可约率回到 54.5%。</div>`;
   }},
   {title:"星期", html(){
     const mon=RAW.dow[0], fri=RAW.dow[4], sat=RAW.dow[5], sun=RAW.dow[6];
